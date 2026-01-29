@@ -18,5 +18,5 @@ Minimal Node.js live reload server for `.html` and `.css` files using HTTP + Web
 ## Setup
 
 ```bash
-npm install ws
+npm install
 node server.js
