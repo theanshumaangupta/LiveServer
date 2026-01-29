@@ -44,50 +44,57 @@ function injection(fileName) {
     return data;
 }
 // Websocket Server Created
+const clients = new Set()
 wss.on("connection", (socket) => {
+    clients.add(socket);
+    socket.on("close", () => clients.delete(socket));
     console.log("Client connected");
-    // For every client connection and detecting file changes
-    fs.watch("./", (eventType, filename) => {
-        if (eventType == "change") {
-            if(path.extname(filename) == ".css"){
-                socket.send(JSON.stringify({
-                    type: "css",
-                    message: "reload",
-                    fileName: filename
-                }))
-            }
-            else{
-                socket.send(JSON.stringify({
-                    type: "html",
-                    message: "reload"
-                }))
-            }
-        }
-    });
 });
+
+// For every client connection and detecting file changes
+fs.watch("./", (eventType, filename) => {
+    if (!filename || eventType !== "change") return;
+    else if (![".html", ".css"].includes(path.extname(filename))) return;
+    for (const socket of clients) {
+        socket.send(JSON.stringify({
+            type: path.extname(filename) === ".css" ? "css" : "html",
+            message: "reload",
+            fileName: filename
+        }));
+    }
+});
+
+// Creating html/css collection on server
+let fileCollection = []
+fs.readdirSync(dirPath).forEach(file => {
+    if (path.extname(file) === ".html" || path.extname(file) === ".css") {
+        fileCollection.push(file)
+    }
+
+})
 // Server Created
+let handled = false
 const server = http.createServer((req, res) => {
-    fs.readdirSync(dirPath).forEach(file => {
-        const urlObj = new URL(req.url, `http://${req.headers.host}`)
-        
-        if (urlObj.pathname == `/${file}` && req.method == "GET") {
-            if (path.extname(file) === ".html") {
-                res.end(injection(file))
-                res.destroy()
-            }
-            else if (path.extname(file) === ".css") {
-                res.end(fs.readFileSync(file, 'utf-8'))
-                res.destroy()
-            }
-        }
-    })
     if (req.url === "/" && req.method === "GET") {
-        console.log("dsfasdf")
         res.end(injection("home.html"))
     }
-    else {
-        return res.end("<html><h1>Not a registered hello path for a Request</h1></html>")
-    };
+
+    else if (req.method == "GET") {
+        const urlObj = new URL(req.url, `http://${req.headers.host}`)
+        // converting path name to file and storing in urlobj.filename like /style.css to style.css
+        urlObj.fileName = (urlObj.pathname).replace("/", "")
+        console.log(urlObj.fileName);
+        if (fileCollection.includes(urlObj.fileName)) {
+            if (path.extname(urlObj.fileName) === ".html") {
+                res.end(injection(urlObj.fileName))
+            }
+            else if (path.extname(urlObj.fileName) === ".css") {
+                res.end(fs.readFileSync(urlObj.fileName, 'utf-8'))
+            }
+        }
+    }
+
+
 })
 server.listen(3000)
 
