@@ -12,9 +12,10 @@
 </style>
 
 <body>
-    Hello 9
+    Hello
 
     <script>
+        // Used to verify that CSS hot reload does not reset client-side state
         setInterval(() => {
             let a = (document.createElement("h1"))
             a.innerText = "Hello"
