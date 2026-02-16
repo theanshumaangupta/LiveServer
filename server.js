@@ -22,11 +22,20 @@ function injection(fileName) {
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data)
                 if (data.message === "reload") {
-                    if(data.type == "html"){
+                    if (data.type == "js") {
                         window.location.reload();
                     }
+                    else if(data.type == "html"){
+                        let current = location.pathname.split("/").pop();
+                        
+                        if (!current || current === "") current = "home.html";
+                        if (!current.includes(".")) current += ".html";
+
+                        if (current === data.fileName) {
+                            window.location.reload();
+                        }
+                    }
                     else if (data.type == "css") {
-                        console.log(data.fileName)
                         let links = document.querySelectorAll('link[rel="stylesheet"]')
                         Array.from(links).forEach((link) => {
                             if (link.href.includes(data.fileName)){
@@ -54,26 +63,21 @@ wss.on("connection", (socket) => {
 // For every client connection and detecting file changes
 fs.watch("./", (eventType, filename) => {
     if (!filename || eventType !== "change") return;
-    else if (![".html", ".css"].includes(path.extname(filename))) return;
+    else if (![".html", ".css", ".js"].includes(path.extname(filename))) return;
     for (const socket of clients) {
+        const ext = path.extname(filename)
+
         socket.send(JSON.stringify({
-            type: path.extname(filename) === ".css" ? "css" : "html",
+            type: ext === ".css" ? "css" :
+                ext === ".js" ? "js" : "html",
             message: "reload",
             fileName: filename
         }));
     }
 });
 
-// Creating html/css collection on server
-let fileCollection = []
-fs.readdirSync(dirPath).forEach(file => {
-    if (path.extname(file) === ".html" || path.extname(file) === ".css") {
-        fileCollection.push(file)
-    }
-
-})
 // Server Created
-let handled = false
+
 const server = http.createServer((req, res) => {
     if (req.url === "/" && req.method === "GET") {
         res.end(injection("home.html"))
@@ -83,14 +87,23 @@ const server = http.createServer((req, res) => {
         const urlObj = new URL(req.url, `http://${req.headers.host}`)
         // converting path name to file and storing in urlobj.filename like /style.css to style.css
         urlObj.fileName = (urlObj.pathname).replace("/", "")
-        console.log(urlObj.fileName);
-        if (fileCollection.includes(urlObj.fileName)) {
+        // if no extension → try .html
+        if (!path.extname(urlObj.fileName)) {
+            urlObj.fileName += ".html"
+        }
+        if (fs.existsSync(urlObj.fileName)) {
             if (path.extname(urlObj.fileName) === ".html") {
                 res.end(injection(urlObj.fileName))
             }
             else if (path.extname(urlObj.fileName) === ".css") {
                 res.end(fs.readFileSync(urlObj.fileName, 'utf-8'))
             }
+            else if (path.extname(urlObj.fileName) === ".js") {
+                res.end(fs.readFileSync(urlObj.fileName, 'utf-8'))
+            }
+        } else {
+            res.writeHead(404, { "Content-Type": "text/html" });
+            res.end("<h1>404 File not Found</h1>");
         }
     }
 
