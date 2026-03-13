@@ -14,6 +14,9 @@ Minimal Node.js live reload server for `.html` and `.css` files using HTTP + Web
 - Auto script injection
 
 ---
+## Demo
+- For live Demo Video: [Linkedin Post](https://www.linkedin.com/posts/findanshumaangupta_live-server-built-in-nodejs-github-activity-7429337499627503617-Zn4o?utm_source=share&utm_medium=member_desktop&rcm=ACoAAF26WSQB-cD3oFrE92xoNFdKnTcENZsSMb8)
+---
 
 ## Setup
 
