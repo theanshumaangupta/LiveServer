@@ -26,7 +26,7 @@ node server.js
 open the port (default 3000)
 
 ---
-By default, the server opens home.html.
+By default, the server opens home.html..
 When you edit any HTML file or  JS, the changes automatically appear in the browser.
 When you edit CSS files, the styles update instantly without reloading the whole page.
 
